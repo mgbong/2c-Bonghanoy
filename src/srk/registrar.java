@@ -1,18 +1,18 @@
 package srk;
 
-import config.config;
-import java.util.Scanner;
+import config.config; //This line imports a custom class named config from a package also named config.
+import java.util.Scanner; //Imports Java’s input reading tool
 
 public class registrar {
 
-    Scanner sc = new Scanner(System.in);
+    Scanner sc = new Scanner(System.in); // "sc" is the object use to access scanner methods.
     config db = new config();
     int choice;
 
     public static void viewStudent() {
         String votersQuery = "SELECT * FROM tbl_student";
-        String[] votersHeaders = {"ID", "Name", "Age", "Gender", "Program", "Year Level"};
-        String[] votersColumns = {"s_id", "s_name", "s_age", "s_gender", "s_program", "s_year"};
+        String[] votersHeaders = {"ID", "Name", "Age", "Gender", "Program", "Year Level"}; //These are the titles that appear above each column when you show student data on screen.
+        String[] votersColumns = {"s_id", "s_name", "s_age", "s_gender", "s_program", "s_year"}; //These are the real field names stored in your database (tbl_student) used for fetching data.
 
         config db = new config();
         db.viewRecords(votersQuery, votersHeaders, votersColumns);

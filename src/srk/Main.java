@@ -59,54 +59,37 @@ public class Main {
                         String type = user.get("u_type").toString();
 
                         if (!stat.equals("Approved")) {
-                            System.out.println("Account Status: " + stat + ". Kindly Reach Out to the Admin!");
+                            System.out.println("Account Status: " + stat + ". Please contact the admin!");
                         } else {
                             System.out.println("LOGIN SUCCESS!");
                             int userId = Integer.parseInt(user.get("u_id").toString());
 
                             if (type.equals("Student")) {
-                                Object studentIdObj = user.get("s_id");
+                                // Ask for Student ID during login
+                                System.out.println("\n=== STUDENT LOGIN ===");
+                                student.viewStudent();
+                                
                                 Integer studentId = null;
+                                boolean validStudentId = false;
+                                
+                                while (!validStudentId) {
+                                    System.out.print("\nEnter your Student ID from the list above: ");
+                                    while (!sc.hasNextInt()) {
+                                        System.out.print("Invalid input. Enter a valid Student ID: ");
+                                        sc.next();
+                                    }
+                                    int inputStudentId = sc.nextInt();
+                                    sc.nextLine();
 
-                                if (studentIdObj != null && !studentIdObj.toString().isEmpty()) {
-                                    studentId = Integer.parseInt(studentIdObj.toString());
-                                }
+                                    String checkStudentSQL = "SELECT * FROM tbl_student WHERE s_id = ?";
+                                    java.util.List<java.util.Map<String, Object>> studentCheck = db.fetchRecords(checkStudentSQL, inputStudentId);
 
-                                if (studentId == null) {
-                                    System.out.println("\n=== FIRST TIME SETUP ===");
-                                    System.out.println("Please link your account to your student record.");
-
-                                    student.viewStudent();
-
-                                    boolean validStudentId = false;
-                                    while (!validStudentId) {
-                                        System.out.print("\nEnter your Student ID from the list above: ");
-                                        while (!sc.hasNextInt()) {
-                                            System.out.print("Invalid input. Enter a valid Student ID: ");
-                                            sc.next();
-                                        }
-                                        int inputStudentId = sc.nextInt();
-                                        sc.nextLine();
-
-                                        String checkStudentSQL = "SELECT * FROM tbl_student WHERE s_id = ?";
-                                        java.util.List<java.util.Map<String, Object>> studentCheck = db.fetchRecords(checkStudentSQL, inputStudentId);
-
-                                        if (studentCheck.isEmpty()) {
-                                            System.out.println("Student ID not found. Please try again.");
-                                        } else {
-                                            String checkLinkSQL = "SELECT * FROM tbl_user WHERE s_id = ? AND u_id != ?";
-                                            java.util.List<java.util.Map<String, Object>> linkCheck = db.fetchRecords(checkLinkSQL, inputStudentId, userId);
-
-                                            if (!linkCheck.isEmpty()) {
-                                                System.out.println("This Student ID is already linked to another account. Please choose a different ID.");
-                                            } else {
-                                                String updateUserSQL = "UPDATE tbl_user SET s_id = ? WHERE u_id = ?";
-                                                db.updateRecord(updateUserSQL, inputStudentId, userId);
-                                                studentId = inputStudentId;
-                                                validStudentId = true;
-                                                System.out.println("Student ID linked successfully!");
-                                            }
-                                        }
+                                    if (studentCheck.isEmpty()) {
+                                        System.out.println("Student ID not found. Please try again.");
+                                    } else {
+                                        studentId = inputStudentId;
+                                        validStudentId = true;
+                                        System.out.println("Student ID verified successfully!");
                                     }
                                 }
 
@@ -146,7 +129,7 @@ public class Main {
                         if (result.isEmpty()) {
                             break;
                         } else {
-                            System.out.print("Email already exists. Enter other Email: ");
+                            System.out.print("Email already exists. Enter a different email: ");
                             eml = sc.nextLine().trim();
                         }
                     }
@@ -187,15 +170,56 @@ public class Main {
                     db.addRecord(sql, un, eml, tp, "Pending", hashedPassword);
 
                     System.out.println("\nRegistration successful! Please wait for admin approval.");
+                    
                     break;
 
                 case 3:
-                    admin Admin = new admin();
-                    Admin.admin();
+                    // Admin authentication before accessing dashboard
+                    boolean adminAuthenticated = false;
+                    int adminLoginAttempts = 0;
+                    
+                    while (!adminAuthenticated && adminLoginAttempts < 3) {
+                        System.out.println("\n=== ADMIN AUTHENTICATION REQUIRED ===");
+                        System.out.print("Enter Admin Email: ");
+                        String adminEmail = sc.nextLine().trim();
+                        
+                        if (adminEmail.isEmpty()) {
+                            System.out.println("Email cannot be empty!");
+                            adminLoginAttempts++;
+                            continue;
+                        }
+                        
+                        System.out.print("Enter Admin Password: ");
+                        String adminPassword = sc.nextLine();
+                        
+                        if (adminPassword.isEmpty()) {
+                            System.out.println("Password cannot be empty!");
+                            adminLoginAttempts++;
+                            continue;
+                        }
+                        
+                        String hashedAdminPassword = db.hashPassword(adminPassword);
+                        String adminCheckQuery = "SELECT * FROM tbl_user WHERE u_email = ? AND u_pass = ? AND u_type = 'Admin' AND u_status = 'Approved'";
+                        java.util.List<java.util.Map<String, Object>> adminResult = db.fetchRecords(adminCheckQuery, adminEmail, hashedAdminPassword);
+                        
+                        if (adminResult.isEmpty()) {
+                            adminLoginAttempts++;
+                            System.out.println("Invalid Admin credentials. Attempts remaining: " + (3 - adminLoginAttempts));
+                        } else {
+                            adminAuthenticated = true;
+                            System.out.println("Admin authenticated successfully!\n");
+                            admin Admin = new admin();
+                            Admin.admin();
+                        }
+                    }
+                    
+                    if (!adminAuthenticated) {
+                        System.out.println("Admin authentication failed. Returning to Main Menu.\n");
+                    }
                     break;
 
                 case 4:
-                    System.out.println("\nThank you for using Student Record Keeping System!");
+                    System.out.println("\nThank you for using the Student Record Keeping System!");
                     System.out.println("Goodbye!");
                     break;
 
