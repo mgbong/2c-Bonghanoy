@@ -39,6 +39,81 @@ public class Main {
                         break;
                     }
 
+                    String checkUserQuery = "SELECT * FROM tbl_user WHERE u_email = ?";
+                    java.util.List<java.util.Map<String, Object>> userCheck = db.fetchRecords(checkUserQuery, em);
+
+                    if (userCheck.isEmpty()) {
+                        System.out.println("Email not found in the system!");
+                        break;
+                    }
+
+                    java.util.Map<String, Object> userInfo = userCheck.get(0);
+                    String userType = userInfo.get("u_type").toString();
+                    int userId = Integer.parseInt(userInfo.get("u_id").toString());
+
+                    Integer studentId = null;
+                    if (userType.equals("Student")) {
+                        // Check if this user already has a linked student ID
+                        String checkExistingLinkSQL = "SELECT s_id FROM tbl_studentuser WHERE u_id = ?";
+                        java.util.List<java.util.Map<String, Object>> existingUserLink = db.fetchRecords(checkExistingLinkSQL, userId);
+                        
+                        if (!existingUserLink.isEmpty()) {
+                            // User already has a linked student ID - use that one only
+                            studentId = Integer.parseInt(existingUserLink.get(0).get("s_id").toString());
+                            System.out.println("Your account is linked to Student ID: " + studentId);
+                            System.out.print("Enter your Student ID to continue: ");
+                            
+                            while (!sc.hasNextInt()) {
+                                System.out.print("Invalid input. Enter a valid Student ID: ");
+                                sc.next();
+                            }
+                            int inputStudentId = sc.nextInt();
+                            sc.nextLine();
+                            
+                            if (inputStudentId != studentId) {
+                                System.out.println("ERROR: Incorrect Student ID! Your account is linked to Student ID: " + studentId);
+                                System.out.println("You cannot use a different Student ID.");
+                                break;
+                            }
+                        } else {
+                            // First time login - need to link a student ID
+                            boolean validStudentId = false;
+                            
+                            while (!validStudentId) {
+                                System.out.print("Enter Student ID: ");
+                                while (!sc.hasNextInt()) {
+                                    System.out.print("Invalid input. Enter a valid Student ID: ");
+                                    sc.next();
+                                }
+                                int inputStudentId = sc.nextInt();
+                                sc.nextLine();
+
+                                // First check if student exists in tbl_student
+                                String checkStudentSQL = "SELECT * FROM tbl_student WHERE s_id = ?";
+                                java.util.List<java.util.Map<String, Object>> studentCheck = db.fetchRecords(checkStudentSQL, inputStudentId);
+
+                                if (studentCheck.isEmpty()) {
+                                    System.out.println("Student ID not found in the system. Please try again.");
+                                    continue;
+                                }
+                                
+                                // Check if this student ID is already linked to ANY user
+                                String checkLinkSQL = "SELECT u_id FROM tbl_studentuser WHERE s_id = ?";
+                                java.util.List<java.util.Map<String, Object>> existingLink = db.fetchRecords(checkLinkSQL, inputStudentId);
+                                
+                                if (!existingLink.isEmpty()) {
+                                    System.out.println("ERROR: This Student ID is already connected to another user account!");
+                                    System.out.println("Please contact the admin if this is your Student ID.");
+                                } else {
+                                    // Not linked to anyone - good to use
+                                    studentId = inputStudentId;
+                                    validStudentId = true;
+                                    System.out.println("Student ID " + studentId + " will be linked to your account.");
+                                }
+                            }
+                        }
+                    }
+                    
                     System.out.print("Enter Password: ");
                     String pas = sc.nextLine();
 
@@ -62,37 +137,12 @@ public class Main {
                             System.out.println("Account Status: " + stat + ". Please contact the admin!");
                         } else {
                             System.out.println("LOGIN SUCCESS!");
-                            int userId = Integer.parseInt(user.get("u_id").toString());
 
                             if (type.equals("Student")) {
-                                // Ask for Student ID during login
-                                System.out.println("\n=== STUDENT LOGIN ===");
-                                student.viewStudent();
+                                // Insert or update the student-user link
+                                String insertLinkSQL = "INSERT OR IGNORE INTO tbl_studentuser (u_id, s_id) VALUES (?, ?)";
+                                db.addRecord(insertLinkSQL, userId, studentId);
                                 
-                                Integer studentId = null;
-                                boolean validStudentId = false;
-                                
-                                while (!validStudentId) {
-                                    System.out.print("\nEnter your Student ID from the list above: ");
-                                    while (!sc.hasNextInt()) {
-                                        System.out.print("Invalid input. Enter a valid Student ID: ");
-                                        sc.next();
-                                    }
-                                    int inputStudentId = sc.nextInt();
-                                    sc.nextLine();
-
-                                    String checkStudentSQL = "SELECT * FROM tbl_student WHERE s_id = ?";
-                                    java.util.List<java.util.Map<String, Object>> studentCheck = db.fetchRecords(checkStudentSQL, inputStudentId);
-
-                                    if (studentCheck.isEmpty()) {
-                                        System.out.println("Student ID not found. Please try again.");
-                                    } else {
-                                        studentId = inputStudentId;
-                                        validStudentId = true;
-                                        System.out.println("Student ID verified successfully!");
-                                    }
-                                }
-
                                 student Student = new student();
                                 Student.student(studentId);
 
@@ -174,7 +224,6 @@ public class Main {
                     break;
 
                 case 3:
-                    // Admin authentication before accessing dashboard
                     boolean adminAuthenticated = false;
                     int adminLoginAttempts = 0;
                     

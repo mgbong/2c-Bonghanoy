@@ -1,11 +1,11 @@
 package srk;
 
-import config.config; //This line imports a custom class named config from a package also named config.
-import java.util.Scanner; //Imports Java’s input reading tool
+import config.config; 
+import java.util.Scanner; 
 
 public class registrar {
 
-    Scanner sc = new Scanner(System.in); // "sc" is the object use to access scanner methods.
+    Scanner sc = new Scanner(System.in); 
     config db = new config();
     int choice;
 

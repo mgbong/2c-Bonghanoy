@@ -38,7 +38,7 @@ public class student {
 
     public static void viewPersonalRecord(int id) {
         System.out.println("\n========================================");
-        System.out.println("YOUR PERSONAL RECORDS");
+        System.out.println("         YOUR PERSONAL RECORDS");
         System.out.println("========================================");
 
         String query = "SELECT * FROM tbl_student WHERE s_id = ?";
